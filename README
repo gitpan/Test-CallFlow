@@ -1,0 +1,54 @@
+Test-CallFlow
+
+Trivial planning of sub call flows for fast unit test writing.
+
+Simply declare a package for mocking and start writing what method calls
+are expected from your test and what values they should return:
+
+    mock_package( 'Pkg::Name' );
+    Pkg::Name->new()->result( bless {}, 'Pkg::Name' );
+
+Provides flexible call order checking and an easily expandable helper system for argument checks.
+
+Depends only on a few other modules usually already installed with perl.
+
+Version 0.01.
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+SUPPORT AND DOCUMENTATION
+
+After installing, you can find documentation for this module with the
+perldoc command.
+
+    perldoc Test::CallFlow
+
+You can also look for information at:
+
+    RT, CPAN's request tracker
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Test-CallFlow
+
+    AnnoCPAN, Annotated CPAN documentation
+        http://annocpan.org/dist/Test-CallFlow
+
+    CPAN Ratings
+        http://cpanratings.perl.org/d/Test-CallFlow
+
+    Search CPAN
+        http://search.cpan.org/dist/Test-CallFlow/
+
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2008 Kalle Hallivuori
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+

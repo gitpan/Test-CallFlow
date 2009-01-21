@@ -1,0 +1,11 @@
+Revision history for Test-CallFlow
+
+0.01    2008-01-21/23:45 EET
+        According to current tests, works ok for
+        - trivial planning and execution
+        - planning and executing unordered, repeated and optional calls
+        - fuzzy argument checking with regexps, code and always accepting
+        - recording call flows for later use in tests
+        - saving and restoring original subs.
+        Time to put it into some real use to find out what is needed.
+
