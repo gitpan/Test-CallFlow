@@ -42,6 +42,13 @@ Mock packages for planning expected interactions in tests:
     
 =head1 USAGE
 
+C<Test::CallFlow> functions are used here in a procedural manner
+because straightforward test scripts are seen as primary use case.
+As well you may create objects with C<new()> and use the provided
+functions as object methods.
+
+=head2 DECLARING
+
     use Test::More plan_tests => 1;
     use Test::CallFlow qw(:all);
 
@@ -53,8 +60,10 @@ Mock packages for planning expected interactions in tests:
         'My::Mocked::Package::Name',          # must specify package name
         { 'optional' => 'content' } );        # may specify what to bless
 
-    Foo::Bar->new()                           # no arguments
-              ->result( $mocked );            # return the mock object
+=head2 PLANNING
+
+    Just::Mocked->new()                       # no arguments
+                ->result( $mocked );          # return the mock object
 
     my $get_call =                            # refer to this Test::CallFlow::Call object
         $mocked->get( "FieldX" )              # one equal string argument
@@ -83,6 +92,8 @@ Mock packages for planning expected interactions in tests:
     sub really_customized {} # skipping mock system
 
     package main; # remember to end your own package definition
+
+=head2 RUNNING
 
     mock_run();  # flow of calls from test planned, now prepare to run the test(s)
 
@@ -123,32 +134,72 @@ C<Test::CallFlow> also provides preliminary sub call recording functionality:
     # generate code to serve as basis for your test run
     print join ";\n", map { $_->name() } mock_plan()->list_calls();
 
+=head2 OBJECT ORIENTED USAGE
+
 C<Test::CallFlow> is actually object-oriented; default instance creation is hidden.
 Usability of multiple simultaneous mock objects is hindered by Perl global package namespace.
 Only one object may be used for recording, planning or running at a time.
 A separate object can be used for each of those tasks simultaneously as long as they don't mock same packages.
 Just do one thing at a time and C<mock_clear()> straight after to steer clear of any problems.
 
+  use Test::CallFlow;
+  
+  my $flow = Test::CallFlow->new(
+        autoload_template => '' # do not declare AUTOLOAD, use explicit mock_call()s only
+  );
+
+  $flow->mock_package( 'Just::Mocked' );
+  $flow->mock_call( 'Just::Mocked::new', 'Just::Mocked' )->result( bless( {}, 'Just::Mocked' ) );
+  $flow->mock_run;
+  print Just::Mocked->new;
+  $flow->mock_end;
+
 =cut
 
 BEGIN {
   @ISA = qw(Exporter);
   @EXPORT_OK =
-    qw(mock_package mock_object mock_run mock_end mock_reset mock_clear mock_call arg_check arg_any record_calls_from);
+    qw(mock_package mock_object mock_run mock_end mock_reset mock_clear mock_call mock_plan arg_check arg_any record_calls_from);
   %EXPORT_TAGS = (
     all => [ @EXPORT_OK ],
   );
   
 }
 
+=head1 PACKAGE PROPERTIES
+
+=over 4
+
+=item %Test::CallFlow::state
+
+Map of state names to state IDs. Used to refer to flow object states:
+
+  unknown, record, plan, execute, failed, succeeded.
+
+=item @Test::CallFlow::state
+
+List of state names. Used to get printable name for state IDs.
+
+=item %Test::CallFlow::prototype
+
+Contains default values for instance properties.
+
+=item @Test::CallFlow::instance
+
+Array of created instances. Used by mocked methods to locate the related instance responsible of building and following the plan, ie. checking the call and providing right result to return.
+
+=back
+
+=cut
+
 my $i = 0;
 %state = map { $_ => $i++ } @state = qw(unknown record plan execute failed succeeded);
 
-=head1 PROPERTIES
+=head1 INSTANCE PROPERTIES
 
-Default properties are defined in C<Test::CallFlow::prototype>.
+Default properties are defined in C<%Test::CallFlow::prototype>.
 They may be specified as parameters for C<new>
-or environment variables with prefix 'mock_', such as 'mock_ISA'.
+or environment variables with prefix C<mock_>, such as C<mock_save>.
 
 Template texts below may contain C<#{variablename}> placeholders that will be
 replaced by context-specific or C<Test::CallFlow> object property values.
@@ -205,7 +256,7 @@ These are set and used at planning and runtime.
 
 =item state
 
-One of C<%Test::CallFlow::state> keys: C<unknown>, C<plan>, C<execute>, C<failed> or C<succeeded>.
+One of C<%Test::CallFlow::state> values.
 
 Default is C<plan>.
 C<mock_run()> sets state to C<execute>.
@@ -318,7 +369,7 @@ sub #{subname} {
   'savedir' => "perl-mock-$$-\#{id}",
 );
 
-=head1 METHODS
+=head1 FUNCTIONS
 
 =head2 instance
 
@@ -506,6 +557,7 @@ sub mock_clear {
                   my $full_sub_name = $namespace . $mocked_sub_name;
                   my $original_sub = $original_subs->{$mocked_sub_name};
                   if( $original_sub ) {
+                    no warnings 'redefine';
                     *{$full_sub_name} = $original_sub;
                   } else {
                     undef *{$full_sub_name};
@@ -571,7 +623,10 @@ sub mock_package {
   }
   use strict 'refs';
 
-  my $plan = $self->plan_mock_package( $name );
+  my $plan = $self->embed(
+    $self->{package_definition_template},
+    packagebody => $self->plan_mock_package( $name )
+  );
 
   warn $plan if $self->{debug_mock};
   eval $plan;
@@ -890,12 +945,13 @@ sub record_mock_call {
 
   my @result = wantarray ? ( $orig->( @_ ) ) : ( scalar $orig->( @_ ) );
 
-  my ( $caller_package, $caller_file, $caller_line, $caller_sub ) =
-    caller(0);
+  my ( $caller_package, $caller_file, $caller_line ) = caller(0);
   if( $self->{record_calls_from}{$caller_package} ) {
+    my $caller_sub = (caller 1)[3];
+    my $called = "$caller_sub at $caller_file line $caller_line";
     $self->plan_mock_call( $sub, @_ )
       ->result( @result )
-      ->called_from( "$caller_package::$caller_sub at $caller_file line $caller_line" );
+      ->called_from( $called );
   }
 
   wantarray ? @result : $result[0];
@@ -939,7 +995,7 @@ Kalle Hallivuori, C<< <kato at iki.fi> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-test-mock at rt.cpan.org>, or through
+Please report any bugs or feature requests to C<bug-test-callflow at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Test-CallFlow>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
@@ -978,7 +1034,7 @@ L<http://search.cpan.org/dist/Test-CallFlow/>
 =head2 ALTERNATIVES
 
 Test::CallFlow provides a very simple way to plan mocks.
-Other solutions are available, each with their strong points, only not as powerful or less intuitive.
+Other solutions are available, each with their strong points.
 
 =over 4
 
@@ -990,12 +1046,12 @@ Call tracking can be disabled.
 
 =item * Test::MockObject
 
-Gathers calls made that you can check in your own code afterwards rather than building the expected call path before.
+Collects calls made so that you can check them in your own code afterwards.
 
 =item * Test::MockModule
 
-You pass the code for each mocked method separately. Why not just write them in the test script instead?
-Does not provide any other functionality besides declaring and undeclaring mock methods.
+You provide the code for each mocked method separately. No flow checks.
+Original methods are remembered and can be restored later.
 
 =item * Test::MockCommand
 

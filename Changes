@@ -1,5 +1,9 @@
 Revision history for Test-CallFlow
 
+0.02    2008-01-22/23:00 EET
+        - updated docs, fixed typos (#42655), fixed redefinition warning
+        - added test for recorded text and fixed it
+
 0.01    2008-01-21/23:45 EET
         According to current tests, works ok for
         - trivial planning and execution

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use UNIVERSAL qw(isa);
 use lib '../lib';
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::CallFlow qw(:all); # package under test
 
 package Foo;
@@ -30,6 +30,13 @@ package main;
 my $out = RecordTests::test_recording();
 is( $out, "real sub called 1 times", "Call through recording mock returns value from real call" );
 
+my $plan = join ";\n", map { $_->name } mock_plan()->list_calls();
+
+like( $plan,
+        qr/Foo::mockable->result\('real sub called 1 times'\)(?x)
+        ->called_from\('RecordTests::test_recording
+        (?-x) at \S*05-recording.t line \d+'\)/,
+        , "Recorded call plan looks right" );
 mock_reset();
 mock_run();
 
@@ -41,4 +48,3 @@ mock_clear();
 
 $out = RecordTests::test_recording();
 is( $out, "real sub called 2 times", "Call after mock_clear goes to original sub" );
-
