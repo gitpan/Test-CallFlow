@@ -21,9 +21,9 @@ Checks the argument at given position in referred array against a regular expres
 =cut
 
 sub check {
-  my ( $self, $at, $args ) = @_;
-  defined $args->[$at] and
-    $args->[$at] =~ $self->{test};
+    my ( $self, $at, $args ) = @_;
+    defined $args->[$at]
+        and $args->[$at] =~ $self->{test};
 }
 
 1;

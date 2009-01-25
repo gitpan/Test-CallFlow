@@ -23,10 +23,10 @@ If test is undefined, arguments must be as well.
 =cut
 
 sub check {
-  my ( $self, $at, $args ) = @_;
-  defined $args->[$at] ?
-    $self->{test} eq $args->[$at]
-    : ! defined $self->{test};
+    my ( $self, $at, $args ) = @_;
+    defined $args->[$at]
+        ? $self->{test} eq $args->[$at]
+        : !defined $self->{test};
 }
 
 1;

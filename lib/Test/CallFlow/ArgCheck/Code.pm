@@ -38,7 +38,7 @@ This way the associated sub can be written like a member of this class, using it
 =cut
 
 sub check {
-  $_[0]->{test}->(@_);
+    $_[0]->{test}->(@_);
 }
 
 1;

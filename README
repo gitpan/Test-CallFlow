@@ -5,14 +5,27 @@ Trivial planning of sub call flows for fast unit test writing.
 Simply declare a package for mocking and start writing what method calls
 are expected from your test and what values they should return:
 
+    use Test::More test => 1;
+    use Test::CallFlow qw(:all);
+    
     mock_package( 'Pkg::Name' );
     Pkg::Name->new()->result( bless {}, 'Pkg::Name' );
 
-Provides flexible call order checking and an easily expandable helper system for argument checks.
+    mock_run();
+    eval {
+        code_under_test();
+        mock_end();
+    };
+    is( $@, '', "Calls made as expected" );
 
-Depends only on a few other modules usually already installed with perl.
+Provides
+    * flexible call order checking 
+    * easily expandable argument check system
+    * recording of calls from real run for legacy code test template generation.
 
-Version 0.01.
+Depends on modules: Carp, Exporter, File::Spec.
+
+Version 0.03.
 
 INSTALLATION
 

@@ -73,8 +73,8 @@ Returns a new C<Test::CallFlow::Call object> with given properties.
 =cut
 
 sub new {
-  my ( $class, %self ) = @_;
-  bless \%self, $class;
+    my ( $class, %self ) = @_;
+    bless \%self, $class;
 }
 
 =head2 result
@@ -90,10 +90,10 @@ Returns self.
 =cut
 
 sub result {
-  my ( $self, @values ) = @_;
-  push @{$self->{results}||=[]}, \@values;
-  warn "Add result to ", $self->name() if $self->{debug};
-  $self;
+    my ( $self, @values ) = @_;
+    push @{ $self->{results} ||= [] }, \@values;
+    warn "Add result to ", $self->name() if $self->{debug};
+    $self;
 }
 
 =head2 result_from
@@ -110,10 +110,10 @@ Returns self.
 =cut
 
 sub result_from {
-  my ( $self, $coderef ) = @_;
-  push @{$self->{results}||=[]}, $coderef;
-  warn "Add result provider to ", $self->name() if $self->{debug};
-  $self;
+    my ( $self, $coderef ) = @_;
+    push @{ $self->{results} ||= [] }, $coderef;
+    warn "Add result provider to ", $self->name() if $self->{debug};
+    $self;
 }
 
 =head2 anytime
@@ -125,8 +125,8 @@ Returns self.
 =cut
 
 sub anytime {
-  $_[0]->{anytime} = 1;
-  $_[0];
+    $_[0]->{anytime} = 1;
+    $_[0];
 }
 
 =head2 min
@@ -140,15 +140,15 @@ When called without a value, returns the current minimum number of calls; defaul
 =cut
 
 sub min {
-	my $self = shift;
-	if(@_) {
-		$self->{min} = shift;
-		return $self;
-	}
+    my $self = shift;
+    if (@_) {
+        $self->{min} = shift;
+        return $self;
+    }
 
-	defined($self->{min}) ?
-	  $self->{min}
-	  : (@{$self->{results}||[]}||1); # default to single void call
+    defined( $self->{min} )
+        ? $self->{min}
+        : ( @{ $self->{results} || [] } || 1 );    # default to single void call
 }
 
 =head2 max
@@ -163,16 +163,16 @@ Default is 1 or bigger of minimum and number of results.
 =cut
 
 sub max {
-	my $self = shift;
-	if(@_) {
-		$self->{max} = shift;
-		return $self;
-	}
-	return $self->{max} if defined $self->{max};
+    my $self = shift;
+    if (@_) {
+        $self->{max} = shift;
+        return $self;
+    }
+    return $self->{max} if defined $self->{max};
 
-	my $results = @{$self->{results}||[]};
-	my $min = $self->min;
-	( $results > $min ? $results : $min ) || 1;
+    my $results = @{ $self->{results} || [] };
+    my $min = $self->min;
+    ( $results > $min ? $results : $min ) || 1;
 }
 
 =head2 end
@@ -193,10 +193,10 @@ Returns self.
 =cut
 
 sub end {
-  my ( $self, @end ) = @_;
-  push @{$self->{end}||=[]}, @end;
-  warn $self->name, " planned to end @{$self->{end}}" if $self->{debug};
-  $self;
+    my ( $self, @end ) = @_;
+    push @{ $self->{end} ||= [] }, @end;
+    warn $self->name, " planned to end @{$self->{end}}" if $self->{debug};
+    $self;
 }
 
 =head2 satisfied
@@ -208,10 +208,11 @@ Returns true when enough calls have been made.
 =cut
 
 sub satisfied {
-	my $self = shift;
-	warn $self->name, " satisfied = ", ($self->{called}||0), " >= ", $self->min
-	  if $self->{debug};
-	($self->{called}||0) >= $self->min;
+    my $self = shift;
+    warn $self->name, " satisfied = ", ( $self->{called} || 0 ), " >= ",
+        $self->min
+        if $self->{debug};
+    ( $self->{called} || 0 ) >= $self->min;
 }
 
 =head2 over
@@ -223,8 +224,8 @@ Returns true when no more calls can be made.
 =cut
 
 sub over {
-	my $self = shift;
-	($self->{called}||0) >= $self->max;
+    my $self = shift;
+    ( $self->{called} || 0 ) >= $self->max;
 }
 
 =head2 in_order
@@ -234,7 +235,7 @@ Returns true if this call must be made in order, false if it can be made at any 
 =cut
 
 sub in_order {
-  ! $_[0]->{anytime};
+    !$_[0]->{anytime};
 }
 
 =head2 check
@@ -249,41 +250,43 @@ On failure, returns position of failed argument and position of the test it fail
 =cut
 
 sub check {
-  my ( $self, $args ) = @_;
-  my $arg_tests = $self->{args} || [];
-  my $test_at = 0;
-  my $args_at = 0;
+    my ( $self, $args ) = @_;
+    my $arg_tests = $self->{args} || [];
+    my $test_at   = 0;
+    my $args_at   = 0;
 
-  do {
-    my $check = $arg_tests->[$test_at];
-    my $arg = $args->[$args_at];
+    do {
+        my $check = $arg_tests->[$test_at];
+        my $arg   = $args->[$args_at];
 
-    warn "Check argument #$args_at '$arg' of (@$args) against test #$test_at '$check'"
-      if $self->{debug};
+        warn
+"Check argument #$args_at '$arg' of (@$args) against test #$test_at '$check'"
+            if $self->{debug};
 
-    $args_at =
-      !defined $check ?
-        ( !defined $arg ?
-            $args_at + 1 # undef matches undef
-          : -1-$args_at # should have been undef
-        )
-      : isa($check, 'Test::CallFlow::ArgCheck') ?
-        $check->skip_matching( $args_at, $args ) # returns new position
-      : ( defined $args->[$args_at] and $check eq $args->[$args_at] ) ?
-        $args_at + 1 # scalars match
-      : -1-$args_at # undef or mismatching scalar
+        $args_at = !defined $check
+            ? (
+            !defined $arg
+            ? $args_at + 1     # undef matches undef
+            : -1 - $args_at    # should have been undef
+            )
+            : isa( $check, 'Test::CallFlow::ArgCheck' )
+            ? $check->skip_matching( $args_at, $args )    # returns new position
+            : ( defined $args->[$args_at] and $check eq $args->[$args_at] )
+            ? $args_at + 1     # scalars match
+            : -1 - $args_at    # undef or mismatching scalar
 
-  } while( $args_at > 0 and ++$test_at < @$arg_tests );
+    } while ( $args_at > 0 and ++$test_at < @$arg_tests );
 
-  my @result =
-    $args_at < @$args ? 
-      ( ($args_at<0 ? -$args_at-1 : $args_at), $test_at )
-    : ();
-    
-  warn "Check ", $self->name(), " at $args_at ", ( @result ? " mismatch: @result" : " ok" ), "\n"
-    if $self->{debug};
+    my @result =
+        $args_at < @$args
+        ? ( ( $args_at < 0 ? -$args_at - 1 : $args_at ), $test_at )
+        : ();
 
-  @result;
+    warn "Check ", $self->name(), " at $args_at ",
+        ( @result ? " mismatch: @result" : " ok" ), "\n"
+        if $self->{debug};
+
+    @result;
 }
 
 =head2 call
@@ -297,16 +300,16 @@ Dies if call has been executed more than maximum times.
 =cut
 
 sub call {
-	my $self = shift;
-	$self->{called_from} = shift;
-	die $self->name, " called too many times ($self->{called} > ", $self->max, ")\n"
-	  if ++$self->{called} > $self->max;
-	warn $self->name, " called $self->{called} times" if $self->{debug};
-	return
-	  unless my $results = @{$self->{results}||[]};
-	my $at = $self->{called} < $results ?
-	  $self->{called} : $results;
-	return $self->{results}[$at-1];
+    my $self = shift;
+    $self->{called_from} = shift;
+    die $self->name, " called too many times ($self->{called} > ", $self->max,
+        ")\n"
+        if ++$self->{called} > $self->max;
+    warn $self->name, " called $self->{called} times" if $self->{debug};
+    return
+        unless my $results = @{ $self->{results} || [] };
+    my $at = $self->{called} < $results ? $self->{called} : $results;
+    return $self->{results}[ $at - 1 ];
 }
 
 =head2 called_from
@@ -320,9 +323,9 @@ Returns self.
 =cut
 
 sub called_from {
-        my $self = shift;
-        $self->{called_from} = shift;
-        $self;
+    my $self = shift;
+    $self->{called_from} = shift;
+    $self;
 }
 
 =head2 name
@@ -334,21 +337,21 @@ Returns a user-readable representation of this call.
 =cut
 
 sub name {
-	my $self = shift;
-	my ( $name, @args ) = @{$self->{args}||[]};
-	$name .= _list_to_string(@args) if @args;
-	$name .= "->result" .
-                join "->result",
-                        map { ref $_ eq 'CODE' ?  "_from( \\\&{'$_'} )" : _list_to_string(@$_) }
-                               @{$self->{results}}
-                if $self->{results};
-        $name .= "->called_from('$self->{called_from}')"
-                if defined $self->{called_from};
-	$name;
+    my $self = shift;
+    my ( $name, @args ) = @{ $self->{args} || [] };
+    $name .= _list_to_string(@args) if @args;
+    $name .= "->result"
+        . join "->result",
+        map { ref $_ eq 'CODE' ? "_from( \\\&{'$_'} )" : _list_to_string(@$_) }
+        @{ $self->{results} }
+        if $self->{results};
+    $name .= "->called_from('$self->{called_from}')"
+        if defined $self->{called_from};
+    $name;
 }
 
 sub _list_to_string {
-	"(" . join( ", ", map { "'$_'"} @_ ) . ")";
+    "(" . join( ", ", map { "'$_'" } @_ ) . ")";
 }
 
 =head2 reset
@@ -360,9 +363,9 @@ Resets the call object to pre-run state.
 =cut
 
 sub reset {
-	my $self = shift;
-	warn "Reset ", $self->name if $self->{debug};
-	delete $self->{called};
+    my $self = shift;
+    warn "Reset ", $self->name if $self->{debug};
+    delete $self->{called};
 }
 
 1;

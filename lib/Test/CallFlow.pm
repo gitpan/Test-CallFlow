@@ -9,7 +9,8 @@ use File::Spec;
 use Test::CallFlow::Plan;
 use Test::CallFlow::Call;
 use Test::CallFlow::ArgCheck::Any;
-use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS $recording $planning $running @instances %state @state);
+use vars
+    qw(@ISA @EXPORT_OK %EXPORT_TAGS $recording $planning $running @instances %state @state);
 
 =head1 NAME
 
@@ -17,12 +18,11 @@ Test::CallFlow - trivial planning of sub call flows for fast unit test writing.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.03
 
 =cut
 
-our $VERSION = '0.01';
-
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
@@ -157,13 +157,11 @@ Just do one thing at a time and C<mock_clear()> straight after to steer clear of
 =cut
 
 BEGIN {
-  @ISA = qw(Exporter);
-  @EXPORT_OK =
-    qw(mock_package mock_object mock_run mock_end mock_reset mock_clear mock_call mock_plan arg_check arg_any record_calls_from);
-  %EXPORT_TAGS = (
-    all => [ @EXPORT_OK ],
-  );
-  
+    @ISA = qw(Exporter);
+    @EXPORT_OK =
+        qw(mock_package mock_object mock_run mock_end mock_reset mock_clear mock_call mock_plan arg_check arg_any record_calls_from);
+    %EXPORT_TAGS = ( all => [@EXPORT_OK], );
+
 }
 
 =head1 PACKAGE PROPERTIES
@@ -193,7 +191,8 @@ Array of created instances. Used by mocked methods to locate the related instanc
 =cut
 
 my $i = 0;
-%state = map { $_ => $i++ } @state = qw(unknown record plan execute failed succeeded);
+%state = map { $_ => $i++ } @state =
+    qw(unknown record plan execute failed succeeded);
 
 =head1 INSTANCE PROPERTIES
 
@@ -327,12 +326,11 @@ Default is 'perl-mock-<process-id>-<mock-instance-number>'.
 
 my %prototype = (
 
-  'state' => $state{plan},
+    'state' => $state{plan},
 
-  # package instantiation stuff:
+    # package instantiation stuff:
 
-  'package_template' => 
-'
+    'package_template' => '
 package #{packagename};
 
 #{subs}
@@ -340,9 +338,7 @@ package #{packagename};
 1;
 ',
 
-  'autoload_template' =>
-
-'
+    'autoload_template' => '
 sub #{subname} {
     @_ = ($Test::CallFlow::instances[#{id}], $#{packagename}::#{subname}, @_);
     goto \&Test::CallFlow::mock_call
@@ -350,23 +346,22 @@ sub #{subname} {
 }
 ',
 
-  'sub_template' =>
-
-'
+    'sub_template' => '
 sub #{subname} {
     @_ = ($Test::CallFlow::instances[#{id}], \'#{packagename}::#{subname}\', @_);
     goto \&Test::CallFlow::mock_call
 }
 ',
 
-  # runtime package definition string
-  'package_definition_template' => "no warnings \'redefine\';\n#{packagebody}",
+    # runtime package definition string
+    'package_definition_template' =>
+        "no warnings \'redefine\';\n#{packagebody}",
 
-  # future Test::CallFlow::Package stuff:
+    # future Test::CallFlow::Package stuff:
 
-  'save' => 0,
-  'basedir' => File::Spec->tmpdir, 
-  'savedir' => "perl-mock-$$-\#{id}",
+    'save'    => 0,
+    'basedir' => File::Spec->tmpdir,
+    'savedir' => "perl-test-callflow-$$-\#{id}",
 );
 
 =head1 FUNCTIONS
@@ -383,18 +378,18 @@ the library can easily be used procedurally.
 =cut
 
 sub instance {
-  my %properties = @_;
+    my %properties = @_;
 
-  for my $instance (@instances) {
-    return $instance
-      unless grep {
-        defined $properties{$_} ?
-          $instance->{$_} ne $properties{$_}
-          : defined $instance->{$_}
-      } keys %properties;
-  }
+    for my $instance (@instances) {
+        return $instance
+            unless grep {
+            defined $properties{$_}
+                ? $instance->{$_} ne $properties{$_}
+                : defined $instance->{$_}
+            } keys %properties;
+    }
 
-  Test::CallFlow->new(%properties);
+    Test::CallFlow->new(%properties);
 }
 
 =head2 new
@@ -407,33 +402,34 @@ Properties not given are taken from %Test::CallFlow::prototype.
 =cut
 
 sub new {
-  my ( $class, %self ) = @_;
-  $class = ref $class if ref $class;
-  $self{id} = @instances;
+    my ( $class, %self ) = @_;
+    $class = ref $class if ref $class;
+    $self{id} = @instances;
 
-  for( keys %prototype ) {
-    $self{$_} = exists $ENV{"mock_$_"} ? $ENV{"mock_$_"} : $prototype{$_}
-      unless exists $self{$_};
-  }
+    for ( keys %prototype ) {
+        $self{$_} = exists $ENV{"mock_$_"} ? $ENV{"mock_$_"} : $prototype{$_}
+            unless exists $self{$_};
+    }
 
-  $self{packages} ||= {};
-  $self{debug} = $ENV{DEBUG} if not exists $self{debug} and exists $ENV{DEBUG};
-  $self{debug_mock} = $self{debug} =~ /\bMock\b/ if $self{debug};
+    $self{packages} ||= {};
+    $self{debug} = $ENV{DEBUG}
+        if not exists $self{debug} and exists $ENV{DEBUG};
+    $self{debug_mock} = $self{debug} =~ /\bMock\b/ if $self{debug};
 
-  if( $self{save} ) {
-    $self{savedir} =~ s/\#{(\w+)}/$self{$1}/g;
-    my $dir = File::Spec->catdir( $self{basedir}, $self{savedir} );
-    unshift @INC, $dir unless grep { $_ eq $dir } @INC;
-  }
+    if ( $self{save} ) {
+        $self{savedir} =~ s/\#{(\w+)}/$self{$1}/g;
+        my $dir = File::Spec->catdir( $self{basedir}, $self{savedir} );
+        unshift @INC, $dir unless grep { $_ eq $dir } @INC;
+    }
 
-  my $self = bless \%self, $class;
-  push @instances, $self;
+    my $self = bless \%self, $class;
+    push @instances, $self;
 
-  $recording = $self if $self{state} == $state{record};
-  $planning = $self if $self{state} == $state{plan};
-  $running = $self if $self{state} == $state{execute};
+    $recording = $self if $self{state} == $state{record};
+    $planning  = $self if $self{state} == $state{plan};
+    $running   = $self if $self{state} == $state{execute};
 
-  return $self;
+    return $self;
 }
 
 =head2 record_calls_from
@@ -447,16 +443,21 @@ Returns self.
 =cut
 
 sub record_calls_from {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $recording || $planning || instance;
-  croak("record_calls_from called in wrong state: ", $state[$self->{state}||0])
-    unless $self->{state} == $state{plan} or $self->{state} == $state{record};
+    my $self =
+           isa( $_[0], 'Test::CallFlow' ) ? shift : $recording
+        || $planning
+        || instance;
+    croak( "record_calls_from called in wrong state: ",
+           $state[ $self->{state} || 0 ] )
+        unless $self->{state} == $state{plan}
+            or $self->{state} == $state{record};
 
-  $self->{record_calls_from}{$_} = 1 for @_;
+    $self->{record_calls_from}{$_} = 1 for @_;
 
-  $self->{state} = $state{record};
-  $running = undef if ($running||0) == $self;
-  $planning = undef if ($planning||0) == $self;
-  $recording = $self;
+    $self->{state} = $state{record};
+    $running  = undef if ( $running  || 0 ) == $self;
+    $planning = undef if ( $planning || 0 ) == $self;
+    $recording = $self;
 }
 
 =head2 mock_run
@@ -472,22 +473,23 @@ Returns self.
 =cut
 
 sub mock_run {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-  $self->save_mock_package( $_ )
-    for grep { !$self->{packages}{$_}{saved} } sort keys %{$self->{packages}};
-  for( sort keys %{$self->{packages}} ) {
-    $INC{mock_package_filename($_)} = "mocked by $self";
-    my $plan = $self->embed(
-      $self->{package_definition_template},
-      packagebody => $self->plan_mock_package( $_ )
-    );
-    eval $plan;
-    confess "### MOCK PACKAGE DEFINITION FAILED ($@):\n$plan\n### END FAILED MOCK PACKAGE DEFINITION ($@)\n"
-      if $@;
-  }
-  $self->{state} = $state{execute};
-  $planning = undef if ($planning||0) == $self;
-  $running = $self;
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    $self->save_mock_package($_)
+        for grep { !$self->{packages}{$_}{saved} }
+        sort keys %{ $self->{packages} };
+    for ( sort keys %{ $self->{packages} } ) {
+        $INC{ mock_package_filename($_) } = "mocked by $self";
+        my $plan = $self->embed( $self->{package_definition_template},
+                                 packagebody => $self->plan_mock_package($_) );
+        eval $plan;
+        confess
+"### FAILED MOCK PACKAGE DEFINITION ($@):\n$plan\n### END FAILED MOCK PACKAGE DEFINITION ($@)\n"
+            if $@;
+    }
+    $self->{state} = $state{execute};
+    $planning = undef if ( $planning || 0 ) == $self;
+    $running = $self;
 }
 
 =head2 mock_end
@@ -503,26 +505,30 @@ Returns self.
 =cut
 
 sub mock_end {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $running || instance;
-  $planning = undef if ($planning||0) == $self;
-  $running = undef if ($running||0) == $self;
-  $recording = undef if ($recording||0) == $self;
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $running
+        || instance;
+    $planning  = undef if ( $planning  || 0 ) == $self;
+    $running   = undef if ( $running   || 0 ) == $self;
+    $recording = undef if ( $recording || 0 ) == $self;
 
-  if( $self->{state} != $state{execute} and $self->{state} != $state{failed} ) {
-  	$self->{state} = $state{failed};
-  	confess "End mock in a bad state: ", $state[$self->{state}]
-  }
+    if (     $self->{state} != $state{execute}
+         and $self->{state} != $state{failed} )
+    {
+        $self->{state} = $state{failed};
+        confess "End mock in a bad state: ", $state[ $self->{state} ];
+    }
 
-  my @unsatisfied = $self->{plan}->unsatisfied;
-  if( @unsatisfied ) {
-  	$self->{state} = $state{failed};
-  	confess "End mock with ",scalar(@unsatisfied)," calls remaining:\n" .
-  		join("\n"), map { "\t" . $_->name } @unsatisfied;
-  }
+    my @unsatisfied = $self->{plan}->unsatisfied;
+    if (@unsatisfied) {
+        $self->{state} = $state{failed};
+        confess "End mock with ", scalar(@unsatisfied),
+            " calls remaining:\n" . join("\n"),
+            map { "\t" . $_->name } @unsatisfied;
+    }
 
-  $self->{state} = $state{succeeded};
+    $self->{state} = $state{succeeded};
 
-  $self;
+    $self;
 }
 
 =head2 mock_clear
@@ -544,37 +550,41 @@ Returns self.
 =cut
 
 sub mock_clear {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $running || $planning || $recording || instance;
+    my $self =
+           isa( $_[0], 'Test::CallFlow' ) ? shift : $running
+        || $planning
+        || $recording
+        || instance;
 
-  # unmock mocked subs
-  no strict 'refs';
-  for my $package_name ( keys %{$self->{packages}||{}} ) {
-          my $package = $self->{packages}{$package_name};
-          my $mocked_subs = $package->{subs} || {};
-          my $original_subs = $package->{original_subs} || {};
-          my $namespace = $package_name . '::';
-          for my $mocked_sub_name ( keys %{$mocked_subs} ) {
-                  my $full_sub_name = $namespace . $mocked_sub_name;
-                  my $original_sub = $original_subs->{$mocked_sub_name};
-                  if( $original_sub ) {
-                    no warnings 'redefine';
-                    *{$full_sub_name} = $original_sub;
-                  } else {
-                    undef *{$full_sub_name};
-                  }
-          }
-  }
-  use strict 'refs';
+    # unmock mocked subs
+    no strict 'refs';
+    for my $package_name ( keys %{ $self->{packages} || {} } ) {
+        my $package       = $self->{packages}{$package_name};
+        my $mocked_subs   = $package->{subs} || {};
+        my $original_subs = $package->{original_subs} || {};
+        my $namespace     = $package_name . '::';
+        for my $mocked_sub_name ( keys %{$mocked_subs} ) {
+            my $full_sub_name = $namespace . $mocked_sub_name;
+            my $original_sub  = $original_subs->{$mocked_sub_name};
+            if ($original_sub) {
+                no warnings 'redefine';
+                *{$full_sub_name} = $original_sub;
+            } else {
+                undef *{$full_sub_name};
+            }
+        }
+    }
+    use strict 'refs';
 
-  delete $self->{record_calls_from};
-  delete $self->{packages};
-  delete $self->{plan};
-  $self->{state} = $state{plan};
+    delete $self->{record_calls_from};
+    delete $self->{packages};
+    delete $self->{plan};
+    $self->{state} = $state{plan};
 
-  $running = undef if ($running||0) == $self;
-  $recording = undef if ($recording||0) == $self;
+    $running   = undef if ( $running   || 0 ) == $self;
+    $recording = undef if ( $recording || 0 ) == $self;
 
-  $planning = $self;
+    $planning = $self;
 }
 
 =head2 mock_reset
@@ -586,10 +596,10 @@ Reset mock plan for re-run.
 =cut
 
 sub mock_reset {
-  my $self = shift || instance;
-  $self->{plan}->reset;
-  delete $self->{record_calls_from};
-  $self->{state} = $state{plan};
+    my $self = shift || instance;
+    $self->{plan}->reset;
+    delete $self->{record_calls_from};
+    $self->{state} = $state{plan};
 }
 
 =head2 mock_package
@@ -604,33 +614,32 @@ C<AUTOLOAD> method gets declared to enable building plan by mock calls.
 =cut
 
 sub mock_package {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-  my $name = shift or confess "Can't mock a package without a name";
-  return if exists $self->{packages}{$name};
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    my $name = shift or confess "Can't mock a package without a name";
+    return if exists $self->{packages}{$name};
 
-  $self->{packages}{$name} = { @_ };
-  unless( exists $self->{packages}{$name}{subs}{AUTOLOAD} ) {
-    $self->mock_sub($name, 'AUTOLOAD', $self->{autoload_template} );
-  }
+    $self->{packages}{$name} = {@_};
+    unless ( exists $self->{packages}{$name}{subs}{AUTOLOAD} ) {
+        $self->mock_sub( $name, 'AUTOLOAD', $self->{autoload_template} );
+    }
 
-  no strict 'refs';
-  my $namespace_name = $name . '::';
-  my %namespace = %{$namespace_name};
-  for my $sub_name ( keys %namespace ) {
-    my $sub = *{$namespace{$sub_name}}{CODE} or next;
-    $self->{packages}{$name}{original_subs}{$sub_name} ||= $sub;
-    $self->mock_sub($name, $sub_name);
-  }
-  use strict 'refs';
+    no strict 'refs';
+    my $namespace_name = $name . '::';
+    my %namespace      = %{$namespace_name};
+    for my $sub_name ( keys %namespace ) {
+        my $sub = *{ $namespace{$sub_name} }{CODE} or next;
+        $self->{packages}{$name}{original_subs}{$sub_name} ||= $sub;
+        $self->mock_sub( $name, $sub_name );
+    }
+    use strict 'refs';
 
-  my $plan = $self->embed(
-    $self->{package_definition_template},
-    packagebody => $self->plan_mock_package( $name )
-  );
+    my $plan = $self->embed( $self->{package_definition_template},
+                             packagebody => $self->plan_mock_package($name) );
 
-  warn $plan if $self->{debug_mock};
-  eval $plan;
-  die $@ if $@;
+    warn $plan if $self->{debug_mock};
+    eval $plan;
+    die $@ if $@;
 }
 
 =head2 mock_object
@@ -643,12 +652,13 @@ Returns an object of given mocked package. Declares that package for mocking if 
 =cut
 
 sub mock_object {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-  my $name = shift;
-  my $object = @_ ? shift : {};
-  mock_package( $name );
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    my $name = shift;
+    my $object = @_ ? shift : {};
+    mock_package($name);
 
-  bless $object, $name;
+    bless $object, $name;
 }
 
 =head2 mock_sub
@@ -676,12 +686,14 @@ Name of package being defined
 =cut
 
 sub mock_sub {
-   my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-   my ( $package, $sub, $code ) = @_;
-   $self->mock_package( $package )
-     unless exists $self->{packages}{$package};
-   delete $self->{packages}{$package}{saved};
-   $self->{packages}{$package}{subs}{$sub} = $code; # undef ok, default sub_template will be used
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    my ( $package, $sub, $code ) = @_;
+    $self->mock_package($package)
+        unless exists $self->{packages}{$package};
+    delete $self->{packages}{$package}{saved};
+    $self->{packages}{$package}{subs}{$sub} =
+        $code;    # undef ok, default sub_template will be used
 }
 
 =head2 mock_call
@@ -700,17 +712,20 @@ During recording calls the original method. If caller is a record candidate, rec
 =cut
 
 sub mock_call {
-  my $self = isa($_[0], 'Test::CallFlow') ? $_[0] : $planning || $running || instance;
-  
-  my $target = {
-          $state{plan} => \&plan_mock_call,
-          $state{execute} => \&execute_mock_call,
-          $state{record} => \&record_mock_call
-  }->{$self->{state}||0}
-    or croak "Mock call in a bad state: ", $state[$self->{state}||0];
-  warn "mock_call in $state[$self->{state}] state" if $self->{debug_mock};
-    
-  goto $target;
+    my $self =
+           isa( $_[0], 'Test::CallFlow' ) ? $_[0] : $planning
+        || $running
+        || instance;
+
+    my $target = {
+                   $state{plan}    => \&plan_mock_call,
+                   $state{execute} => \&execute_mock_call,
+                   $state{record}  => \&record_mock_call
+        }->{ $self->{state} || 0 }
+        or croak "Mock call in a bad state: ", $state[ $self->{state} || 0 ];
+    warn "mock_call in $state[$self->{state}] state" if $self->{debug_mock};
+
+    goto $target;
 }
 
 =head2 mock_plan
@@ -720,9 +735,13 @@ Returns reference to the Test::CallFlow::Plan object.
 =cut
 
 sub mock_plan {
-  my $self = isa($_[0], 'Test::CallFlow') ? $_[0] : $recording || $planning || $running || instance;
+    my $self =
+           isa( $_[0], 'Test::CallFlow' ) ? $_[0] : $recording
+        || $planning
+        || $running
+        || instance;
 
-  $self->{plan};
+    $self->{plan};
 }
 
 =head2 arg_check
@@ -746,15 +765,16 @@ Arguments are
 =cut
 
 sub arg_check {
-  my @args = qw(test min max);
-  my %checker = map { shift(@args), $_ } @_;
-  $checker{min} ||= 1 unless defined $checker{min};
-  $checker{max} ||= $checker{min} || 1;
-  my $class = "Test::CallFlow::ArgCheck::".ucfirst(lc(ref($checker{test}) || 'equals'));
-  my $checker;
-  eval "use $class; \$checker = $class->new(\%checker)";
-  confess $@ if $@;
-  $checker;
+    my @args = qw(test min max);
+    my %checker = map { shift(@args), $_ } @_;
+    $checker{min} ||= 1 unless defined $checker{min};
+    $checker{max} ||= $checker{min} || 1;
+    my $class = "Test::CallFlow::ArgCheck::"
+        . ucfirst( lc( ref( $checker{test} ) || 'equals' ) );
+    my $checker;
+    eval "use $class; \$checker = $class->new(\%checker)";
+    confess $@ if $@;
+    $checker;
 }
 
 =head2 arg_any
@@ -768,10 +788,10 @@ possible number of arguments to pass.
 =cut
 
 sub arg_any {
-	my %args;
-	$args{min} = shift if @_ and $_[0] =~ /^\d+$/;
-	$args{max} = shift if @_ and $_[0] =~ /^\d+$/;
-	Test::CallFlow::ArgCheck::Any->new(%args, @_);
+    my %args;
+    $args{min} = shift if @_ and $_[0] =~ /^\d+$/;
+    $args{max} = shift if @_ and $_[0] =~ /^\d+$/;
+    Test::CallFlow::ArgCheck::Any->new( %args, @_ );
 }
 
 =head1 INTERNAL METHODS
@@ -788,29 +808,32 @@ Dies on I/O failures.
 =cut
 
 sub save_mock_package {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-  my ( $package_name ) = shift;
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    my ($package_name) = shift;
 
-  # package must exist and be set to be saved, not be set to not save
-  return unless exists $self->{packages}{$package_name} and
-     exists $self->{packages}{$package_name}{save} ?
-       $self->{packages}{$package_name}{save} : $self->{save};
+    # package must exist and be set to be saved, not be set to not save
+    return
+        unless exists $self->{packages}{$package_name}
+            and exists $self->{packages}{$package_name}{save}
+        ? $self->{packages}{$package_name}{save}
+        : $self->{save};
 
-  my $plan = $self->plan_mock_package($package_name, @_);
-  
-  my $dir = $self->{basedir};
-  my @dir = ( $self->{savedir}, split /::/, $package_name );
-  my $filename = pop(@dir) . ".pm";
-  for( @dir ) {
-    $dir = File::Spec->catdir( $dir, $_ );
-    mkdir $dir unless -d $dir;
-  }
-  my $fullfile = File::Spec->catdir( $dir, $filename );
-  warn "Save '$fullfile'" if $self->{debug_mock};
-  my $fh = IO::File->open($fullfile, 'w') or die $!;
-  $fh->print($plan);
-  $fh->close or die $!;
-  $self->{packages}{$package_name}{saved} = 1;
+    my $plan = $self->plan_mock_package( $package_name, @_ );
+
+    my $dir      = $self->{basedir};
+    my @dir      = ( $self->{savedir}, split /::/, $package_name );
+    my $filename = pop(@dir) . ".pm";
+    for (@dir) {
+        $dir = File::Spec->catdir( $dir, $_ );
+        mkdir $dir unless -d $dir;
+    }
+    my $fullfile = File::Spec->catdir( $dir, $filename );
+    warn "Save '$fullfile'" if $self->{debug_mock};
+    my $fh = IO::File->open( $fullfile, 'w' ) or die $!;
+    $fh->print($plan);
+    $fh->close or die $!;
+    $self->{packages}{$package_name}{saved} = 1;
 }
 
 =head2 plan_mock_package
@@ -822,20 +845,24 @@ Returns a string containing the perl code for a package with mock versions of al
 =cut
 
 sub plan_mock_package {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift: instance;
-  my ( $package_name ) = @_;
-  return unless defined $self->{packages}{$package_name};
-  my $subs = $self->{packages}{$package_name}{subs}||{};
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : instance;
+    my ($package_name) = @_;
+    return unless defined $self->{packages}{$package_name};
+    my $subs = $self->{packages}{$package_name}{subs} || {};
 
-  $self->embed(
-    $self->{package_template} || $self->{sub_template},
-    packagename => $package_name,
-    subs => join '', map {
-      $self->embed( $subs->{$_} || $self->{sub_template},
+    $self->embed(
+        $self->{package_template} || $self->{sub_template},
         packagename => $package_name,
-        subname => $_,
-    ) } sort grep /^\w+$/, keys %$subs
-  );
+        subs        => join '',
+        map {
+            $self->embed(
+                          $subs->{$_} || $self->{sub_template},
+                          packagename => $package_name,
+                          subname     => $_,
+                )
+            } sort grep /^\w+$/,
+        keys %$subs
+    );
 }
 
 =head2 embed
@@ -849,13 +876,14 @@ Does not recurse indefinitely, but gives silently up after 15 recursions.
 =cut
 
 sub embed {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-  my $text = shift;
-  my ( %embeddable ) = ( %$self, @_ );
-  my $embeddable_keys = join '|', keys %embeddable;
-  my $depth = 16;
-  1 while --$depth and $text =~ s/#{($embeddable_keys)}/$embeddable{$1}/g;
-  $text;
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    my $text = shift;
+    my (%embeddable) = ( %$self, @_ );
+    my $embeddable_keys = join '|', keys %embeddable;
+    my $depth = 16;
+    1 while --$depth and $text =~ s/#{($embeddable_keys)}/$embeddable{$1}/g;
+    $text;
 }
 
 =head2 mock_package_filename
@@ -867,10 +895,11 @@ Returns relative path and filename combination string for given package name.
 =cut
 
 sub mock_package_filename {
-  my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning || instance;
-  my ( $package_name ) = shift;
+    my $self = isa( $_[0], 'Test::CallFlow' ) ? shift : $planning
+        || instance;
+    my ($package_name) = shift;
 
-  File::Spec->catdir( split /::/, $package_name ) . '.pm';
+    File::Spec->catdir( split /::/, $package_name ) . '.pm';
 }
 
 =head2 plan_mock_call
@@ -882,25 +911,31 @@ Adds a call with given package::sub name and arguments to call plan.
 =cut
 
 sub plan_mock_call {
-  my $self = shift;
-  my $sub = shift or confess "No sub";
-  unless( ref $sub ) {
-    my ( $package, $method ) = $sub =~ /(.+)::([^:]+)$/;
-    $self->mock_sub( $package, $method )
-      unless $self->{packages}{$package}
-        and $self->{packages}{$package}{subs}{$sub};
-  }
-  my $call_plan = Test::CallFlow::Call->new(
-    args => [ $sub, @_ ],
-    ($self->{debug}||'') =~ /\bCall\b/ ? (debug=>$self->{debug}) : ()
-  );
-  $self->{plan} ||= Test::CallFlow::Plan->new(
-    ($self->{debug}||'') =~ /\bPlan\b/ ? (debug=>$self->{debug}) : ()
-  );
-  $self->{plan}->add_call($call_plan);
-  warn "Planned call $sub(@_)" if $self->{debug_mock};
+    my $self = shift;
+    my $sub = shift or confess "No sub";
+    unless ( ref $sub ) {
+        my ( $package, $method ) = $sub =~ /(.+)::([^:]+)$/;
+        $self->mock_sub( $package, $method )
+            unless $self->{packages}{$package}
+                and $self->{packages}{$package}{subs}{$sub};
+    }
+    my $call_plan =
+        Test::CallFlow::Call->new(
+                                   args => [ $sub, @_ ],
+                                   ( $self->{debug} || '' ) =~ /\bCall\b/
+                                   ? ( debug => $self->{debug} )
+                                   : ()
+        );
+    $self->{plan} ||=
+        Test::CallFlow::Plan->new(
+                                     ( $self->{debug} || '' ) =~ /\bPlan\b/
+                                   ? ( debug => $self->{debug} )
+                                   : ()
+        );
+    $self->{plan}->add_call($call_plan);
+    warn "Planned call $sub(@_)" if $self->{debug_mock};
 
-  $call_plan;
+    $call_plan;
 }
 
 =head2 execute_mock_call
@@ -912,16 +947,14 @@ Returns result from planned mock call matching given executed call if one exists
 =cut
 
 sub execute_mock_call {
-  my $self = shift;
-  my @result;
-  eval {
-  	@result = $self->{plan}->call(@_);
-  };
-  if($@) {
-  	$self->{state} = $state{failed};
-    die $@;
-  }
-  wantarray ? @result : $result[0];
+    my $self = shift;
+    my @result;
+    eval { @result = $self->{plan}->call(@_); };
+    if ($@) {
+        $self->{state} = $state{failed};
+        die $@;
+    }
+    wantarray ? @result : $result[0];
 }
 
 =head2 record_mock_call
@@ -933,28 +966,27 @@ Returns result of call to original method.
 =cut
 
 sub record_mock_call {
-  my $self = shift;
-  my $sub = shift or confess "No sub";
-  my ( $package_name, $sub_name ) = $sub =~ /(.+)::([^:]+)$/;
+    my $self = shift;
+    my $sub = shift or confess "No sub";
+    my ( $package_name, $sub_name ) = $sub =~ /(.+)::([^:]+)$/;
 
-  my $package = $self->{packages}{$package_name}
-    or confess "No package '$package_name' for $sub(@_)";
-  
-  my $orig = $package->{original_subs}{$sub_name}
-    or confess "No such original sub $sub(@_)";
+    my $package = $self->{packages}{$package_name}
+        or confess "No package '$package_name' for $sub(@_)";
 
-  my @result = wantarray ? ( $orig->( @_ ) ) : ( scalar $orig->( @_ ) );
+    my $orig = $package->{original_subs}{$sub_name}
+        or confess "No such original sub $sub(@_)";
 
-  my ( $caller_package, $caller_file, $caller_line ) = caller(0);
-  if( $self->{record_calls_from}{$caller_package} ) {
-    my $caller_sub = (caller 1)[3];
-    my $called = "$caller_sub at $caller_file line $caller_line";
-    $self->plan_mock_call( $sub, @_ )
-      ->result( @result )
-      ->called_from( $called );
-  }
+    my @result = wantarray ? ( $orig->(@_) ) : ( scalar $orig->(@_) );
 
-  wantarray ? @result : $result[0];
+    my ( $caller_package, $caller_file, $caller_line ) = caller(0);
+    if ( $self->{record_calls_from}{$caller_package} ) {
+        my $caller_sub = ( caller 1 )[3];
+        my $called     = "$caller_sub at $caller_file line $caller_line";
+        $self->plan_mock_call( $sub, @_ )->result(@result)
+            ->called_from($called);
+    }
+
+    wantarray ? @result : $result[0];
 }
 
 =head1 TODO
@@ -1116,4 +1148,4 @@ under the same terms as Perl itself.
 
 =cut
 
-1; # End of Test::CallFlow
+1;    # End of Test::CallFlow
